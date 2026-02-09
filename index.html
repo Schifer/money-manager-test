@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body>
+    
+    <div class="app-wrapper">
+
+        <div id="content" class="content">
+            
+            <div id="home-view" class="view-section">
+                
+                <div class="home-header-card">
+                    <select id="home-account-select" onchange="renderHome()"></select>
+                    <h1 id="home-balance">$0.00</h1>
+                    <small style="color:#888">Current Balance</small>
+                </div>
+
+                <div class="view-switch-container">
+                    <button id="btn-view-expense" class="view-switch-btn active" onclick="toggleHomeView('expense')">Expense</button>
+                    <button id="btn-view-income" class="view-switch-btn" onclick="toggleHomeView('income')">Income</button>
+                </div>
+
+                <div class="time-filters">
+                    <button class="filter-btn" onclick="setFilter('day')">Day</button>
+                    <button class="filter-btn" onclick="setFilter('week')">Week</button>
+                    <button class="filter-btn active" onclick="setFilter('month')">Month</button>
+                    <button class="filter-btn" onclick="setFilter('period')">Period</button>
+                </div>
+
+                <div class="date-controls-container">
+                    <div style="flex-grow: 1;">
+                        <div id="home-ctrl-day" class="date-ctrl hidden"><input type="date" id="home-date-input" onchange="renderHome()"></div>
+                        <div id="home-ctrl-week" class="date-ctrl hidden"><input type="week" id="home-week-input" onchange="renderHome()"></div>
+                        <div id="home-ctrl-month" class="date-ctrl"><input type="month" id="home-month-input" onchange="renderHome()"></div>
+                        <div id="home-ctrl-period" class="date-ctrl hidden" style="flex-direction: column; gap:10px;">
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">From</label><input type="date" id="home-start-input" onchange="renderHome()"></div>
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">To</label><input type="date" id="home-end-input" onchange="renderHome()"></div>
+                        </div>
+                    </div>
+                    <button class="date-reset-btn" onclick="resetHomeDates()">↻</button>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-center-text">
+                        <small id="chart-label">Spent</small>
+                        <div id="period-total">$0.00</div>
+                    </div>
+                    <canvas id="mainChart"></canvas>
+                </div>
+
+                <div id="budget-overview" class="list-container hidden"></div>
+
+                <h3 style="margin-top:20px; margin-bottom:10px;">Transactions</h3>
+                <div id="transaction-list" class="spending-list"></div>
+                <div id="no-data-msg" class="hidden" style="text-align:center; color:#555; margin-top:20px;">No data for this period.</div>
+            </div>
+
+            <div id="accounts-view" class="view-section hidden">
+                <div class="balance-header">
+                    <small>Total Assets</small>
+                    <h1 id="grand-total">$0.00</h1>
+                </div>
+                <div class="section-header">
+                    <h3>My Accounts</h3>
+                    <button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button>
+                </div>
+                <div id="accounts-list" class="list-container"></div>
+            </div>
+
+            <div id="graph-view" class="view-section hidden">
+                <header class="view-header">
+                    <h2>Analytics</h2>
+                </header>
+
+                <div style="text-align:center; margin-bottom:20px;">
+                    <small style="color:#888; text-transform:uppercase;">Total Tagged</small>
+                    <h1 id="graph-total-amount" style="margin:0; font-size:32px; color:#03dac6;">$0.00</h1>
+                </div>
+
+                <div class="time-filters">
+                    <button class="graph-filter-btn" onclick="setGraphFilter('day')">Day</button>
+                    <button class="graph-filter-btn active" onclick="setGraphFilter('month')">Month</button>
+                    <button class="graph-filter-btn" onclick="setGraphFilter('period')">Period</button>
+                </div>
+
+                <div class="date-controls-container">
+                    <div style="flex-grow: 1;">
+                        <div id="ctrl-day" class="date-ctrl hidden"><input type="date" id="graph-date-input" onchange="renderGraph()"></div>
+                        <div id="ctrl-month" class="date-ctrl"><input type="month" id="graph-month-input" onchange="renderGraph()"></div>
+                        <div id="ctrl-period" class="date-ctrl hidden" style="flex-direction: column; gap:10px;">
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">From</label><input type="date" id="graph-start-input" onchange="renderGraph()"></div>
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">To</label><input type="date" id="graph-end-input" onchange="renderGraph()"></div>
+                        </div>
+                    </div>
+                    <button class="date-reset-btn" onclick="resetGraphDates()">↻</button>
+                </div>
+
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="tagChart"></canvas>
+                </div>
+                <div id="no-tags-msg" class="hidden" style="text-align:center; color:#555; margin-top:50px;">No tagged expenses found.</div>
+            </div>
+
+            <div id="categories-view" class="view-section hidden">
+                <header class="view-header">
+                    <h2>Budget & Categories</h2>
+                    <button class="add-btn" onclick="openCategoryForm()">+ New</button>
+                </header>
+                <div id="categories-list" class="list-container"></div>
+            </div>
+
+            <div id="settings-view" class="view-section hidden">
+                <header class="view-header">
+                    <h2>Settings</h2>
+                </header>
+                <div class="settings-list">
+                    <div class="setting-card">
+                        <h3>Data Management</h3>
+                        <p style="color:#888; font-size:12px; margin-bottom:15px;">Clear all your categories, accounts, and transactions permanently.</p>
+                        <button class="danger-btn" onclick="openResetConfirmation()">⚠️ Reset All Data</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <button class="fab-btn" onclick="openTransactionForm()">+</button>
+
+        <div id="category-form-overlay" class="overlay hidden">
+            <div class="modal">
+                <h3 id="modal-title">New Category</h3>
+                <label>Name</label> <input type="text" id="cat-name" placeholder="Name">
+                <label>Type</label>
+                <div class="type-selector">
+                    <button class="type-btn active" onclick="selectType(this, 'account')">Account</button>
+                    <button class="type-btn" onclick="selectType(this, 'section')">Section</button>
+                </div>
+                <div id="balance-input-container"><label>Initial Amount</label><input type="number" id="cat-initial-balance" placeholder="0.00"></div>
+                <div id="cap-input-container" class="hidden"><label>Monthly Spending Cap</label><input type="number" id="cat-cap" placeholder="0.00 (Optional)"></div>
+                <label>Color</label> <div class="color-picker" id="color-picker"></div>
+                <label>Icon</label> <div class="icon-picker" id="icon-picker"></div>
+                <div class="modal-actions"><button class="cancel-btn" onclick="closeCategoryForm()">Cancel</button><button class="save-btn" onclick="saveCategory()">Save</button></div>
+            </div>
+        </div>
+
+        <div id="transfer-form-overlay" class="overlay hidden">
+            <div class="modal">
+                <h3>Transfer Money</h3>
+                <div class="row">
+                    <div style="flex:1"><label>From</label><select id="trans-from"></select></div>
+                    <div style="display:flex; align-items:center; padding-top:15px; padding-left:10px; padding-right:10px;">➔</div>
+                    <div style="flex:1"><label>To</label><select id="trans-to"></select></div>
+                </div>
+                <label>Amount</label> <input type="number" id="trans-amount" placeholder="0.00">
+                <label>Date</label> <input type="date" id="trans-date">
+                <label>Note</label> <input type="text" id="trans-note" placeholder="Note">
+                <div class="modal-actions"><button class="cancel-btn" onclick="closeTransferForm()">Cancel</button><button class="save-btn" onclick="saveTransfer()">Transfer</button></div>
+            </div>
+        </div>
+
+        <div id="transaction-form-overlay" class="overlay hidden">
+            <div class="modal">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3 id="tx-modal-title" style="margin:0;">Add Transaction</h3>
+                    <button id="btn-delete-tx" class="hidden" onclick="deleteTransaction()" style="background:none; border:none; font-size:20px; cursor:pointer;">🗑️</button>
+                </div>
+                <div class="form-type-switch">
+                    <button id="btn-form-expense" class="form-type-btn active" onclick="setFormType('expense')">Expense</button>
+                    <button id="btn-form-income" class="form-type-btn" onclick="setFormType('income')">Income</button>
+                </div>
+                <label>Amount</label> <input type="number" id="tx-amount" placeholder="0.00" style="font-size: 24px; color:#cf6679;">
+                <label id="lbl-account">Pay From</label> <select id="tx-account"></select>
+                <div id="tx-category-wrapper"><label>Category</label> <select id="tx-category"></select></div>
+                <label>Date</label> <input type="date" id="tx-date">
+                <label>Tags <small style="font-weight:normal; color:#666;">(Hold to delete)</small></label>
+                <div class="tag-input-row">
+                    <input type="text" id="tx-tag-input" placeholder="Add a tag..." style="margin-bottom:0;">
+                    <button id="tag-action-btn" class="tag-action-btn" onclick="handleTagAction()">+</button>
+                </div>
+                <div id="tag-cloud" class="tag-cloud-container"></div>
+                <div class="modal-actions"><button class="cancel-btn" onclick="closeTransactionForm()">Cancel</button><button class="save-btn" onclick="saveTransaction()">Save</button></div>
+            </div>
+        </div>
+
+        <div id="reset-confirm-overlay" class="overlay hidden"><div class="modal" style="text-align:center;"><h3 style="color:#cf6679;">⚠️ Warning</h3><p style="color:#bbb; margin-bottom:20px;">Delete ALL data? Cannot be undone.</p><div class="modal-actions"><button class="save-btn" style="background:#333; color:white;" onclick="closeResetConfirmation()">No, Cancel</button><button class="cancel-btn" onclick="startResetProcess()">Yes, Reset</button></div></div></div>
+        <div id="reset-progress-overlay" class="overlay hidden"><div class="modal" style="text-align:center;"><h3>Resetting...</h3><div class="progress-track"><div id="reset-fill" class="progress-fill"></div></div><p id="reset-timer-text" style="color:#888; font-size:12px; margin-top:5px;">10s remaining</p><button class="save-btn" style="margin-top:20px; background:#333; color:white; width:100%;" onclick="cancelReset()">Cancel Reset</button></div></div>
+
+        <nav class="dock">
+            <button class="nav-btn active" onclick="switchTab('home')"><span>🏠</span><small>Home</small></button>
+            <button class="nav-btn" onclick="switchTab('graph')"><span>📊</span><small>Graph</small></button>
+            <button class="nav-btn" onclick="switchTab('accounts')"><span>💳</span><small>Cards</small></button>
+            <button class="nav-btn" onclick="switchTab('categories')"><span>📂</span><small>Cats</small></button>
+            <button class="nav-btn" onclick="switchTab('settings')"><span>⚙️</span><small>Set</small></button>
+        </nav>
+    
+    </div> 
+
+    <script src="app.js"></script>
+</body>
+</html>
