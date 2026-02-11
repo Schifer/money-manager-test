@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Money Manager</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Money Manager">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1077/1077114.png">
+    
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,7 +17,7 @@
 </head>
 <body>
     
-    <div class="app-wrapper">
+    <div class="app-wrapper theme-expense">
 
         <div id="content" class="content">
             
@@ -28,6 +34,12 @@
                     <button id="btn-view-income" class="view-switch-btn" onclick="toggleHomeView('income')">Income</button>
                 </div>
 
+                <div class="tag-filter-container" style="margin-bottom: 15px;">
+                    <select id="home-tag-filter" onchange="renderHome()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="">All Tags</option>
+                    </select>
+                </div>
+
                 <div class="time-filters">
                     <button class="filter-btn" onclick="setFilter('day')">Day</button>
                     <button class="filter-btn" onclick="setFilter('week')">Week</button>
@@ -36,15 +48,39 @@
                 </div>
 
                 <div class="date-controls-container">
-                    <div style="flex-grow: 1;">
-                        <div id="home-ctrl-day" class="date-ctrl hidden"><input type="date" id="home-date-input" onchange="renderHome()"></div>
-                        <div id="home-ctrl-week" class="date-ctrl hidden"><input type="week" id="home-week-input" onchange="renderHome()"></div>
-                        <div id="home-ctrl-month" class="date-ctrl"><input type="month" id="home-month-input" onchange="renderHome()"></div>
-                        <div id="home-ctrl-period" class="date-ctrl hidden" style="flex-direction: column; gap:10px;">
-                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">From</label><input type="date" id="home-start-input" onchange="renderHome()"></div>
-                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">To</label><input type="date" id="home-end-input" onchange="renderHome()"></div>
+                    <button class="date-nav-btn" onclick="changeDate(-1)">&#9664;</button>
+                    
+                    <div style="flex-grow: 1; position: relative;">
+                        
+                        <div id="home-ctrl-day" class="date-display-wrapper">
+                            <div id="display-day" class="custom-date-text">Loading...</div>
+                            <input type="date" id="home-date-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();">
                         </div>
+
+                        <div id="home-ctrl-month" class="date-display-wrapper hidden">
+                            <div id="display-month" class="custom-date-text">Loading...</div>
+                            <input type="month" id="home-month-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();">
+                        </div>
+
+                        <div id="home-ctrl-week" class="date-display-wrapper hidden">
+                            <div id="display-week" class="custom-date-text">Loading...</div>
+                            <input type="week" id="home-week-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();">
+                        </div>
+
+                        <div id="home-ctrl-period" class="hidden" style="display: flex; flex-direction: column; gap:10px;">
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;">
+                                <label style="margin:0; width:30px;">From</label>
+                                <input type="date" id="home-start-input" style="background:#2c2c2c; border:none; color:white; padding:8px; border-radius:6px; flex:1;" onchange="renderHome()">
+                            </div>
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;">
+                                <label style="margin:0; width:30px;">To</label>
+                                <input type="date" id="home-end-input" style="background:#2c2c2c; border:none; color:white; padding:8px; border-radius:6px; flex:1;" onchange="renderHome()">
+                            </div>
+                        </div>
+
                     </div>
+
+                    <button class="date-nav-btn" onclick="changeDate(1)">&#9654;</button>
                     <button class="date-reset-btn" onclick="resetHomeDates()">↻</button>
                 </div>
 
@@ -70,7 +106,10 @@
                 </div>
                 <div class="section-header">
                     <h3>My Accounts</h3>
-                    <button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button>
+                    <div style="display:flex; gap:10px;">
+                        <button class="add-btn" onclick="openCategoryForm('account')">+ New</button>
+                        <button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button>
+                    </div>
                 </div>
                 <div id="accounts-list" class="list-container"></div>
             </div>
@@ -79,6 +118,11 @@
                 <header class="view-header">
                     <h2>Analytics</h2>
                 </header>
+
+                <div class="view-switch-container" style="margin-bottom:20px;">
+                    <button id="btn-graph-expense" class="view-switch-btn active" onclick="toggleGraphMode('expense')">Expense</button>
+                    <button id="btn-graph-income" class="view-switch-btn" onclick="toggleGraphMode('income')">Income</button>
+                </div>
 
                 <div style="text-align:center; margin-bottom:20px;">
                     <small style="color:#888; text-transform:uppercase;">Total Tagged</small>
@@ -112,7 +156,7 @@
             <div id="categories-view" class="view-section hidden">
                 <header class="view-header">
                     <h2>Budget & Categories</h2>
-                    <button class="add-btn" onclick="openCategoryForm()">+ New</button>
+                    <button class="add-btn" onclick="openCategoryForm('section')">+ New</button>
                 </header>
                 <div id="categories-list" class="list-container"></div>
             </div>
@@ -137,17 +181,37 @@
         <div id="category-form-overlay" class="overlay hidden">
             <div class="modal">
                 <h3 id="modal-title">New Category</h3>
-                <label>Name</label> <input type="text" id="cat-name" placeholder="Name">
-                <label>Type</label>
-                <div class="type-selector">
+                
+                <label>Name</label> 
+                <input type="text" id="cat-name" placeholder="Name">
+                
+                <div class="type-selector hidden">
                     <button class="type-btn active" onclick="selectType(this, 'account')">Account</button>
                     <button class="type-btn" onclick="selectType(this, 'section')">Section</button>
                 </div>
-                <div id="balance-input-container"><label>Initial Amount</label><input type="number" id="cat-initial-balance" placeholder="0.00"></div>
-                <div id="cap-input-container" class="hidden"><label>Monthly Spending Cap</label><input type="number" id="cat-cap" placeholder="0.00 (Optional)"></div>
+
+                <div id="balance-input-container">
+                    <label>Initial Amount</label>
+                    <input type="number" id="cat-initial-balance" placeholder="0.00">
+                    
+                    <div style="display:flex; align-items:center; margin-bottom:20px; gap:10px;">
+                        <input type="checkbox" id="cat-is-default" style="width:20px; height:20px; margin:0;">
+                        <label for="cat-is-default" style="margin:0; color:#fff; cursor:pointer;">Set as Default Payment Account</label>
+                    </div>
+                </div>
+
+                <div id="cap-input-container" class="hidden">
+                    <label>Monthly Spending Cap</label>
+                    <input type="number" id="cat-cap" placeholder="0.00 (Optional)">
+                </div>
+                
                 <label>Color</label> <div class="color-picker" id="color-picker"></div>
                 <label>Icon</label> <div class="icon-picker" id="icon-picker"></div>
-                <div class="modal-actions"><button class="cancel-btn" onclick="closeCategoryForm()">Cancel</button><button class="save-btn" onclick="saveCategory()">Save</button></div>
+                
+                <div class="modal-actions">
+                    <button class="cancel-btn" onclick="closeCategoryForm()">Cancel</button>
+                    <button class="save-btn" onclick="saveCategory()">Save</button>
+                </div>
             </div>
         </div>
 
@@ -182,7 +246,7 @@
                 <label>Date</label> <input type="date" id="tx-date">
                 <label>Tags <small style="font-weight:normal; color:#666;">(Hold to delete)</small></label>
                 <div class="tag-input-row">
-                    <input type="text" id="tx-tag-input" placeholder="Add a tag..." style="margin-bottom:0;">
+                    <input type="text" id="tx-tag-input" placeholder="Add a tag..." style="margin-bottom:0;" oninput="checkTagInput()">
                     <button id="tag-action-btn" class="tag-action-btn" onclick="handleTagAction()">+</button>
                 </div>
                 <div id="tag-cloud" class="tag-cloud-container"></div>
@@ -204,5 +268,13 @@
     </div> 
 
     <script src="app.js"></script>
+    <script>
+        // Service Worker Registration for Offline/Install Support
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.error('SW Config Error', err));
+        }
+    </script>
 </body>
 </html>
