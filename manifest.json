@@ -1,16 +1,26 @@
 {
   "name": "Money Manager",
-  "short_name": "MyWallet",
-  "start_url": "index.html",
+  "short_name": "MoneyMgr",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#121212",
-  "theme_color": "#1e1e1e",
+  "theme_color": "#121212",
   "orientation": "portrait",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/1077/1077114.png",
-      "sizes": "192x192",
+      "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
