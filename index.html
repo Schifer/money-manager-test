@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Money Manager</title>
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Money Manager">
+    <meta name="theme-color" content="#121212"> 
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1077/1077114.png">
-    
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,17 +16,41 @@
 </head>
 <body>
     
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">💎</div>
+            <div class="splash-title">MONEY MANAGER</div>
+            <div class="splash-loader"></div>
+        </div>
+    </div>
+    
     <div class="app-wrapper theme-expense">
 
         <div id="content" class="content">
             
             <div id="home-view" class="view-section">
                 
-                <div class="home-header-card">
-                    <select id="home-account-select" onchange="renderHome()"></select>
-                    <h1 id="home-balance">$0.00</h1>
-                    <small style="color:#888">Current Balance</small>
+                <div class="premium-card">
+                    <div class="card-top">
+                        <div class="card-chip"></div>
+                        <div class="card-brand">UNIVERSAL</div>
+                    </div>
+                    <div style="position:relative; z-index:2;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="card-balance-label">Total Balance</div>
+                            <button id="btn-privacy" class="privacy-btn" onclick="togglePrivacy()">👁️</button>
+                        </div>
+                        <div id="home-balance" class="card-balance">₹0.00</div>
+                    </div>
+                    <div class="card-bottom">
+                        <div>
+                            <div class="card-holder-label">Card Holder</div>
+                            <div id="card-holder-name" class="card-holder-name">USER</div>
+                        </div>
+                        <div class="card-exp">**/**</div>
+                    </div>
                 </div>
+                <select id="home-account-select" onchange="renderHome()" style="opacity:0; position:absolute; top:20px; right:20px; width:20px;"></select>
 
                 <div class="view-switch-container">
                     <button id="btn-view-expense" class="view-switch-btn active" onclick="toggleHomeView('expense')">Expense</button>
@@ -41,100 +64,53 @@
                 </div>
 
                 <div class="time-filters">
-                    <button class="filter-btn" onclick="setFilter('day')">Day</button>
+                    <button class="filter-btn active" onclick="setFilter('day')">Day</button>
                     <button class="filter-btn" onclick="setFilter('week')">Week</button>
-                    <button class="filter-btn active" onclick="setFilter('month')">Month</button>
+                    <button class="filter-btn" onclick="setFilter('month')">Month</button>
                     <button class="filter-btn" onclick="setFilter('period')">Period</button>
                 </div>
 
                 <div class="date-controls-container">
                     <button class="date-nav-btn" onclick="changeDate(-1)">&#9664;</button>
-                    
                     <div style="flex-grow: 1; position: relative;">
-                        
-                        <div id="home-ctrl-day" class="date-display-wrapper">
-                            <div id="display-day" class="custom-date-text">Loading...</div>
-                            <input type="date" id="home-date-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();">
-                        </div>
-
-                        <div id="home-ctrl-month" class="date-display-wrapper hidden">
-                            <div id="display-month" class="custom-date-text">Loading...</div>
-                            <input type="month" id="home-month-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();">
-                        </div>
-
-                        <div id="home-ctrl-week" class="date-display-wrapper hidden">
-                            <div id="display-week" class="custom-date-text">Loading...</div>
-                            <input type="week" id="home-week-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();">
-                        </div>
-
+                        <div id="home-ctrl-day" class="date-display-wrapper"><div id="display-day" class="custom-date-text">Loading...</div><input type="date" id="home-date-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();"></div>
+                        <div id="home-ctrl-month" class="date-display-wrapper hidden"><div id="display-month" class="custom-date-text">Loading...</div><input type="month" id="home-month-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();"></div>
+                        <div id="home-ctrl-week" class="date-display-wrapper hidden"><div id="display-week" class="custom-date-text">Loading...</div><input type="week" id="home-week-input" class="hidden-date-input" onchange="updateSmartDateDisplay(); renderHome();"></div>
                         <div id="home-ctrl-period" class="hidden" style="display: flex; flex-direction: column; gap:10px;">
-                            <div style="display:flex; width:100%; gap:5px; align-items:center;">
-                                <label style="margin:0; width:30px;">From</label>
-                                <input type="date" id="home-start-input" style="background:#2c2c2c; border:none; color:white; padding:8px; border-radius:6px; flex:1;" onchange="renderHome()">
-                            </div>
-                            <div style="display:flex; width:100%; gap:5px; align-items:center;">
-                                <label style="margin:0; width:30px;">To</label>
-                                <input type="date" id="home-end-input" style="background:#2c2c2c; border:none; color:white; padding:8px; border-radius:6px; flex:1;" onchange="renderHome()">
-                            </div>
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">From</label><input type="date" id="home-start-input" style="background:#2c2c2c; border:none; color:white; padding:8px; border-radius:6px; flex:1;" onchange="renderHome()"></div>
+                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">To</label><input type="date" id="home-end-input" style="background:#2c2c2c; border:none; color:white; padding:8px; border-radius:6px; flex:1;" onchange="renderHome()"></div>
                         </div>
-
                     </div>
-
                     <button class="date-nav-btn" onclick="changeDate(1)">&#9654;</button>
                     <button class="date-reset-btn" onclick="resetHomeDates()">↻</button>
                 </div>
 
                 <div class="chart-container">
-                    <div class="chart-center-text">
-                        <small id="chart-label">Spent</small>
-                        <div id="period-total">$0.00</div>
-                    </div>
+                    <div class="chart-center-text"><small id="chart-label">Spent</small><div id="period-total">₹0.00</div></div>
                     <canvas id="mainChart"></canvas>
+                    <button class="fab-btn" onclick="openTransactionForm()">+</button>
                 </div>
 
                 <div id="budget-overview" class="list-container hidden"></div>
-
                 <h3 style="margin-top:20px; margin-bottom:10px;">Transactions</h3>
                 <div id="transaction-list" class="spending-list"></div>
                 <div id="no-data-msg" class="hidden" style="text-align:center; color:#555; margin-top:20px;">No data for this period.</div>
             </div>
 
             <div id="accounts-view" class="view-section hidden">
-                <div class="balance-header">
-                    <small>Total Assets</small>
-                    <h1 id="grand-total">$0.00</h1>
-                </div>
+                <div class="balance-header"><small>Total Assets</small><h1 id="grand-total">₹0.00</h1></div>
                 <div class="section-header">
                     <h3>My Accounts</h3>
-                    <div style="display:flex; gap:10px;">
-                        <button class="add-btn" onclick="openCategoryForm('account')">+ New</button>
-                        <button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button>
-                    </div>
+                    <div style="display:flex; gap:10px;"><button class="add-btn" onclick="openCategoryForm('account')">+ New</button><button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button></div>
                 </div>
                 <div id="accounts-list" class="list-container"></div>
             </div>
 
             <div id="graph-view" class="view-section hidden">
-                <header class="view-header">
-                    <h2>Analytics</h2>
-                </header>
-
-                <div class="view-switch-container" style="margin-bottom:20px;">
-                    <button id="btn-graph-expense" class="view-switch-btn active" onclick="toggleGraphMode('expense')">Expense</button>
-                    <button id="btn-graph-income" class="view-switch-btn" onclick="toggleGraphMode('income')">Income</button>
-                </div>
-
-                <div style="text-align:center; margin-bottom:20px;">
-                    <small style="color:#888; text-transform:uppercase;">Total Tagged</small>
-                    <h1 id="graph-total-amount" style="margin:0; font-size:32px; color:#03dac6;">$0.00</h1>
-                </div>
-
-                <div class="time-filters">
-                    <button class="graph-filter-btn" onclick="setGraphFilter('day')">Day</button>
-                    <button class="graph-filter-btn active" onclick="setGraphFilter('month')">Month</button>
-                    <button class="graph-filter-btn" onclick="setGraphFilter('period')">Period</button>
-                </div>
-
+                <header class="view-header"><h2>Analytics</h2></header>
+                <div class="view-switch-container" style="margin-bottom:20px;"><button id="btn-graph-expense" class="view-switch-btn active" onclick="toggleGraphMode('expense')">Expense</button><button id="btn-graph-income" class="view-switch-btn" onclick="toggleGraphMode('income')">Income</button></div>
+                <div style="text-align:center; margin-bottom:20px;"><small style="color:#888; text-transform:uppercase;">Total Tagged</small><h1 id="graph-total-amount" style="margin:0; font-size:32px; color:#03dac6;">₹0.00</h1></div>
+                <div class="time-filters"><button class="graph-filter-btn" onclick="setGraphFilter('day')">Day</button><button class="graph-filter-btn active" onclick="setGraphFilter('month')">Month</button><button class="graph-filter-btn" onclick="setGraphFilter('period')">Period</button></div>
                 <div class="date-controls-container">
                     <div style="flex-grow: 1;">
                         <div id="ctrl-day" class="date-ctrl hidden"><input type="date" id="graph-date-input" onchange="renderGraph()"></div>
@@ -146,44 +122,30 @@
                     </div>
                     <button class="date-reset-btn" onclick="resetGraphDates()">↻</button>
                 </div>
-
-                <div class="chart-container" style="height: 400px;">
-                    <canvas id="tagChart"></canvas>
-                </div>
+                <div class="chart-container" style="height: 400px;"><canvas id="tagChart"></canvas></div>
                 <div id="no-tags-msg" class="hidden" style="text-align:center; color:#555; margin-top:50px;">No tagged expenses found.</div>
             </div>
 
             <div id="categories-view" class="view-section hidden">
-                <header class="view-header">
-                    <h2>Budget & Categories</h2>
-                    <button class="add-btn" onclick="openCategoryForm('section')">+ New</button>
-                </header>
+                <header class="view-header"><h2>Budget & Categories</h2><button class="add-btn" onclick="openCategoryForm('section')">+ New</button></header>
                 <div id="categories-list" class="list-container"></div>
             </div>
 
             <div id="settings-view" class="view-section hidden">
-                <header class="view-header">
-                    <h2>Settings</h2>
-                </header>
+                <header class="view-header"><h2>Settings</h2></header>
                 <div class="settings-list">
-                    <div class="setting-card">
-                        <h3>Data Management</h3>
-                        <p style="color:#888; font-size:12px; margin-bottom:15px;">Clear all your categories, accounts, and transactions permanently.</p>
-                        <button class="danger-btn" onclick="openResetConfirmation()">⚠️ Reset All Data</button>
-                    </div>
+                    <div class="setting-card"><h3>Data Management</h3><p style="color:#888; font-size:12px; margin-bottom:15px;">Clear all your categories, accounts, and transactions permanently.</p><button class="danger-btn" onclick="openResetConfirmation()">⚠️ Reset All Data</button></div>
                 </div>
+                <div class="setting-card" style="margin-bottom:20px; margin-top:15px;"><h3>Personalization</h3><label>Card Holder Name</label><input type="text" id="setting-username" placeholder="Enter your name" oninput="saveUserName()"></div>
+                <div style="text-align:center; margin-top:40px; opacity:0.3; padding-bottom:20px;"><div style="font-size:24px; margin-bottom:10px; filter: grayscale(100%);">💎</div><p style="font-size:10px; font-family:monospace; letter-spacing:2px; color:#fff; margin:5px 0;">MONEY MANAGER OS</p><p style="font-size:10px; font-family:monospace; color:#666; margin:0;">VERSION 0.2 (BETA)</p><p style="font-size:10px; font-family:monospace; color:#666; margin-top:5px;">&copy; 2026 SCHIFER INDUSTRIES</p></div>
             </div>
 
         </div>
 
-        <button class="fab-btn" onclick="openTransactionForm()">+</button>
-
         <div id="category-form-overlay" class="overlay hidden">
             <div class="modal">
                 <h3 id="modal-title">New Category</h3>
-                
-                <label>Name</label> 
-                <input type="text" id="cat-name" placeholder="Name">
+                <label>Name</label> <input type="text" id="cat-name" placeholder="Name">
                 
                 <div class="type-selector hidden">
                     <button class="type-btn active" onclick="selectType(this, 'account')">Account</button>
@@ -191,7 +153,7 @@
                 </div>
 
                 <div id="balance-input-container">
-                    <label>Initial Amount</label>
+                    <label id="lbl-balance-val">Current Balance</label>
                     <input type="number" id="cat-initial-balance" placeholder="0.00">
                     
                     <div style="display:flex; align-items:center; margin-bottom:20px; gap:10px;">
@@ -204,7 +166,7 @@
                     <label>Monthly Spending Cap</label>
                     <input type="number" id="cat-cap" placeholder="0.00 (Optional)">
                 </div>
-                
+
                 <label>Color</label> <div class="color-picker" id="color-picker"></div>
                 <label>Icon</label> <div class="icon-picker" id="icon-picker"></div>
                 
@@ -216,64 +178,60 @@
         </div>
 
         <div id="transfer-form-overlay" class="overlay hidden">
-            <div class="modal">
-                <h3>Transfer Money</h3>
-                <div class="row">
-                    <div style="flex:1"><label>From</label><select id="trans-from"></select></div>
-                    <div style="display:flex; align-items:center; padding-top:15px; padding-left:10px; padding-right:10px;">➔</div>
-                    <div style="flex:1"><label>To</label><select id="trans-to"></select></div>
-                </div>
-                <label>Amount</label> <input type="number" id="trans-amount" placeholder="0.00">
-                <label>Date</label> <input type="date" id="trans-date">
-                <label>Note</label> <input type="text" id="trans-note" placeholder="Note">
-                <div class="modal-actions"><button class="cancel-btn" onclick="closeTransferForm()">Cancel</button><button class="save-btn" onclick="saveTransfer()">Transfer</button></div>
-            </div>
+            <div class="modal"><h3>Transfer Money</h3><div class="row"><div style="flex:1"><label>From</label><select id="trans-from"></select></div><div style="display:flex; align-items:center; padding-top:15px; padding-left:10px; padding-right:10px;">➔</div><div style="flex:1"><label>To</label><select id="trans-to"></select></div></div><label>Amount</label> <input type="number" id="trans-amount" placeholder="0.00"><label>Date</label> <input type="date" id="trans-date"><label>Note</label> <input type="text" id="trans-note" placeholder="Note"><div class="modal-actions"><button class="cancel-btn" onclick="closeTransferForm()">Cancel</button><button class="save-btn" onclick="saveTransfer()">Transfer</button></div></div>
         </div>
 
         <div id="transaction-form-overlay" class="overlay hidden">
-            <div class="modal">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <h3 id="tx-modal-title" style="margin:0;">Add Transaction</h3>
-                    <button id="btn-delete-tx" class="hidden" onclick="deleteTransaction()" style="background:none; border:none; font-size:20px; cursor:pointer;">🗑️</button>
-                </div>
-                <div class="form-type-switch">
-                    <button id="btn-form-expense" class="form-type-btn active" onclick="setFormType('expense')">Expense</button>
-                    <button id="btn-form-income" class="form-type-btn" onclick="setFormType('income')">Income</button>
-                </div>
-                <label>Amount</label> <input type="number" id="tx-amount" placeholder="0.00" style="font-size: 24px; color:#cf6679;">
-                <label id="lbl-account">Pay From</label> <select id="tx-account"></select>
-                <div id="tx-category-wrapper"><label>Category</label> <select id="tx-category"></select></div>
-                <label>Date</label> <input type="date" id="tx-date">
-                <label>Tags <small style="font-weight:normal; color:#666;">(Hold to delete)</small></label>
-                <div class="tag-input-row">
-                    <input type="text" id="tx-tag-input" placeholder="Add a tag..." style="margin-bottom:0;" oninput="checkTagInput()">
-                    <button id="tag-action-btn" class="tag-action-btn" onclick="handleTagAction()">+</button>
-                </div>
-                <div id="tag-cloud" class="tag-cloud-container"></div>
-                <div class="modal-actions"><button class="cancel-btn" onclick="closeTransactionForm()">Cancel</button><button class="save-btn" onclick="saveTransaction()">Save</button></div>
-            </div>
+            <div class="modal"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h3 id="tx-modal-title" style="margin:0;">Add Transaction</h3><button id="btn-delete-tx" class="hidden" onclick="deleteTransaction()" style="background:none; border:none; font-size:20px; cursor:pointer;">🗑️</button></div><div class="form-type-switch"><button id="btn-form-expense" class="form-type-btn active" onclick="setFormType('expense')">Expense</button><button id="btn-form-income" class="form-type-btn" onclick="setFormType('income')">Income</button></div><label>Amount</label> <input type="number" id="tx-amount" placeholder="0.00" style="font-size: 24px; color:#f13130;"><label id="lbl-account">Pay From</label> <select id="tx-account"></select><div id="tx-category-wrapper"><label>Category</label> <select id="tx-category"></select></div><label>Date</label> <input type="date" id="tx-date"><label>Tags <small style="font-weight:normal; color:#666;">(Hold to delete)</small></label><div class="tag-input-row"><input type="text" id="tx-tag-input" placeholder="Add a tag..." style="margin-bottom:0;" oninput="checkTagInput()"><button id="tag-action-btn" class="tag-action-btn" onclick="handleTagAction()">+</button></div><div id="tag-cloud" class="tag-cloud-container"></div><div class="modal-actions"><button class="cancel-btn" onclick="closeTransactionForm()">Cancel</button><button class="save-btn" onclick="saveTransaction()">Save</button></div></div>
         </div>
 
-        <div id="reset-confirm-overlay" class="overlay hidden"><div class="modal" style="text-align:center;"><h3 style="color:#cf6679;">⚠️ Warning</h3><p style="color:#bbb; margin-bottom:20px;">Delete ALL data? Cannot be undone.</p><div class="modal-actions"><button class="save-btn" style="background:#333; color:white;" onclick="closeResetConfirmation()">No, Cancel</button><button class="cancel-btn" onclick="startResetProcess()">Yes, Reset</button></div></div></div>
+        <div id="reset-confirm-overlay" class="overlay hidden"><div class="modal" style="text-align:center;"><h3 style="color:#f13130;">⚠️ Warning</h3><p style="color:#bbb; margin-bottom:20px;">Delete ALL data? Cannot be undone.</p><div class="modal-actions"><button class="save-btn" style="background:#333; color:white;" onclick="closeResetConfirmation()">No, Cancel</button><button class="cancel-btn" onclick="startResetProcess()">Yes, Reset</button></div></div></div>
         <div id="reset-progress-overlay" class="overlay hidden"><div class="modal" style="text-align:center;"><h3>Resetting...</h3><div class="progress-track"><div id="reset-fill" class="progress-fill"></div></div><p id="reset-timer-text" style="color:#888; font-size:12px; margin-top:5px;">10s remaining</p><button class="save-btn" style="margin-top:20px; background:#333; color:white; width:100%;" onclick="cancelReset()">Cancel Reset</button></div></div>
 
         <nav class="dock">
-            <button class="nav-btn active" onclick="switchTab('home')"><span>🏠</span><small>Home</small></button>
-            <button class="nav-btn" onclick="switchTab('graph')"><span>📊</span><small>Graph</small></button>
-            <button class="nav-btn" onclick="switchTab('accounts')"><span>💳</span><small>Cards</small></button>
-            <button class="nav-btn" onclick="switchTab('categories')"><span>📂</span><small>Cats</small></button>
-            <button class="nav-btn" onclick="switchTab('settings')"><span>⚙️</span><small>Set</small></button>
+            <button class="nav-btn active" onclick="switchTab('home')">
+                <svg class="nav-svg nav-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <svg class="nav-svg nav-solid" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+            </button>
+            
+            <button class="nav-btn" onclick="switchTab('graph')">
+                <svg class="nav-svg nav-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <svg class="nav-svg nav-solid" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+            </button>
+
+            <button class="nav-btn" onclick="switchTab('accounts')">
+                <svg class="nav-svg nav-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                <svg class="nav-svg nav-solid" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg>
+            </button>
+
+            <button class="nav-btn" onclick="switchTab('categories')">
+                <svg class="nav-svg nav-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                <svg class="nav-svg nav-solid" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+            </button>
+
+            <button class="nav-btn" onclick="switchTab('settings')">
+                <svg class="nav-svg nav-outline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <svg class="nav-svg nav-solid" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
+            </button>
         </nav>
     
     </div> 
 
-    <script src="app.js"></script>
+    <script src="utils.js?v=2"></script>
+    <script src="render.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+    
     <script>
-        // Service Worker Registration for Offline/Install Support
+        // --- FORCE RESET SERVICE WORKER ---
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log('Service Worker Registered'))
-                .catch(err => console.error('SW Config Error', err));
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                } 
+            });
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('SW Registered!', reg);
+            });
         }
     </script>
 </body>
