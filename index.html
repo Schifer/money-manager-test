@@ -18,7 +18,13 @@
     
     <div id="splash-screen">
         <div class="splash-content">
-            <div class="splash-logo">💎</div>
+            <div class="splash-logo">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 3h12l4 6-10 13L2 9z"></path>
+                    <path d="M11 3 8 9l4 13 4-13-3-6"></path>
+                    <path d="M2 9h20"></path>
+                </svg>
+            </div>
             <div class="splash-title">MONEY MANAGER</div>
             <div class="splash-loader"></div>
         </div>
@@ -27,6 +33,14 @@
     <div class="app-wrapper theme-expense">
 
         <div id="content" class="content">
+            <div id="transfer-history-view" class="view-section hidden">
+                <header class="view-header">
+                    <button class="add-btn" style="background:transparent; border:none; padding:0; font-size:18px;" onclick="closeTransferHistory()">← Back</button>
+                    <h2>Transfer History</h2>
+        <div style="width:40px;"></div>
+    </header>
+    <div id="transfer-list" class="spending-list"></div>
+</div>
             
             <div id="home-view" class="view-section">
                 
@@ -99,10 +113,15 @@
 
             <div id="accounts-view" class="view-section hidden">
                 <div class="balance-header"><small>Total Assets</small><h1 id="grand-total">₹0.00</h1></div>
-                <div class="section-header">
-                    <h3>My Accounts</h3>
-                    <div style="display:flex; gap:10px;"><button class="add-btn" onclick="openCategoryForm('account')">+ New</button><button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button></div>
+               <div class="section-header">
+                   <h3>My Accounts</h3>
+                   <div style="display:flex; gap:10px;">
+                       <button class="add-btn" onclick="openCategoryForm('account')">+ New</button>
+                       <button class="add-btn" onclick="openTransferForm()">⇄ Transfer</button>
+                       <button class="add-btn" onclick="openTransferHistory()">📜 History</button>
+                       </div>
                 </div>
+
                 <div id="accounts-list" class="list-container"></div>
             </div>
 
@@ -112,16 +131,31 @@
                 <div style="text-align:center; margin-bottom:20px;"><small style="color:#888; text-transform:uppercase;">Total Tagged</small><h1 id="graph-total-amount" style="margin:0; font-size:32px; color:#03dac6;">₹0.00</h1></div>
                 <div class="time-filters"><button class="graph-filter-btn" onclick="setGraphFilter('day')">Day</button><button class="graph-filter-btn active" onclick="setGraphFilter('month')">Month</button><button class="graph-filter-btn" onclick="setGraphFilter('period')">Period</button></div>
                 <div class="date-controls-container">
-                    <div style="flex-grow: 1;">
-                        <div id="ctrl-day" class="date-ctrl hidden"><input type="date" id="graph-date-input" onchange="renderGraph()"></div>
-                        <div id="ctrl-month" class="date-ctrl"><input type="month" id="graph-month-input" onchange="renderGraph()"></div>
-                        <div id="ctrl-period" class="date-ctrl hidden" style="flex-direction: column; gap:10px;">
-                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">From</label><input type="date" id="graph-start-input" onchange="renderGraph()"></div>
-                            <div style="display:flex; width:100%; gap:5px; align-items:center;"><label style="margin:0; width:30px;">To</label><input type="date" id="graph-end-input" onchange="renderGraph()"></div>
-                        </div>
-                    </div>
-                    <button class="date-reset-btn" onclick="resetGraphDates()">↻</button>
-                </div>
+    <div style="flex-grow: 1; position: relative;">
+        <div id="graph-ctrl-day" class="date-display-wrapper hidden">
+            <div id="graph-display-day" class="custom-date-text">Select Date</div>
+            <input type="date" id="graph-date-input" class="hidden-date-input" onchange="updateGraphSmartDateDisplay(); renderGraph();">
+        </div>
+        
+        <div id="graph-ctrl-month" class="date-display-wrapper">
+            <div id="graph-display-month" class="custom-date-text">Select Month</div>
+            <input type="month" id="graph-month-input" class="hidden-date-input" onchange="updateGraphSmartDateDisplay(); renderGraph();">
+        </div>
+        
+        <div id="graph-ctrl-period" class="hidden" style="display: flex; gap:10px;">
+            <div style="flex:1; position:relative;" class="date-display-wrapper">
+                <div id="graph-display-start" class="custom-date-text">From</div>
+                <input type="date" id="graph-start-input" class="hidden-date-input" onchange="updateGraphSmartDateDisplay(); renderGraph()">
+            </div>
+            <div style="flex:1; position:relative;" class="date-display-wrapper">
+                <div id="graph-display-end" class="custom-date-text">To</div>
+                <input type="date" id="graph-end-input" class="hidden-date-input" onchange="updateGraphSmartDateDisplay(); renderGraph()">
+            </div>
+        </div>
+    </div>
+    <button class="date-reset-btn" onclick="resetGraphDates()">↻</button>
+</div>
+
                 <div class="chart-container" style="height: 400px;"><canvas id="tagChart"></canvas></div>
                 <div id="no-tags-msg" class="hidden" style="text-align:center; color:#555; margin-top:50px;">No tagged expenses found.</div>
             </div>
@@ -144,35 +178,60 @@
 
         <div id="category-form-overlay" class="overlay hidden">
             <div class="modal">
-                <h3 id="modal-title">New Category</h3>
-                <label>Name</label> <input type="text" id="cat-name" placeholder="Name">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 id="modal-title" style="margin:0;">New Category</h3>
+        <button id="btn-delete-cat" class="hidden" onclick="deleteCategory()" style="background:none; border:none; font-size:20px; cursor:pointer;">🗑️</button>
+    </div>
+
+    <label>Name</label> <input type="text" id="cat-name" placeholder="Name">
+    
+    <div class="type-selector hidden">
+        <button class="type-btn active" onclick="selectType(this, 'account')">Account</button>
+        <button class="type-btn" onclick="selectType(this, 'section')">Section</button>
+    </div>
+
+    <div id="balance-input-container">
+        <label id="lbl-balance-val">Current Balance</label>
+        <input type="number" id="cat-initial-balance" placeholder="0.00">
+        
+        <div style="display:flex; align-items:center; margin-bottom:20px; gap:10px;">
+            <input type="checkbox" id="cat-is-default" style="width:20px; height:20px; margin:0;">
+            <label for="cat-is-default" style="margin:0; color:#fff; cursor:pointer;">Set as Default Payment Account</label>
+        </div>
+    </div>
+
+    <div id="cap-input-container" class="hidden">
+        <label>Monthly Spending Cap</label>
+        <input type="number" id="cat-cap" placeholder="0.00 (Optional)">
+    </div>
+
+    <label>Color</label> <div class="color-picker" id="color-picker"></div>
+    <label>Icon</label> <div class="icon-picker" id="icon-picker"></div>
+    
+    <div class="modal-actions">
+        <button class="cancel-btn" onclick="closeCategoryForm()">Cancel</button>
+        <button class="save-btn" onclick="saveCategory()">Save</button>
+    </div>
+</div>
+
+        </div>
+
+        <div id="pin-form-overlay" class="overlay hidden">
+            <div class="modal" style="text-align:center; width: 80%; max-width: 320px;">
+                <h3 id="pin-title" style="margin-top:0;">Enter PIN</h3>
                 
-                <div class="type-selector hidden">
-                    <button class="type-btn active" onclick="selectType(this, 'account')">Account</button>
-                    <button class="type-btn" onclick="selectType(this, 'section')">Section</button>
+                <p id="pin-warning" class="hidden" style="color: #f13130; font-size: 11px; margin-bottom: 20px; line-height: 1.4; background: rgba(241, 49, 48, 0.1); padding: 10px; border-radius: 8px;">
+                    Caution: This PIN is stored locally. If forgotten, you must perform a full 'App Reset' in Settings to regain access, which will wipe all data.
+                </p>
+
+                <div style="margin-bottom: 25px;">
+                    <input type="password" id="pin-input" inputmode="numeric" maxlength="4" placeholder="••••" 
+                        style="width: 140px; text-align: center; font-size: 32px; letter-spacing: 8px; background: transparent; border: none; border-bottom: 2px solid #444; color: white; border-radius: 0; padding: 5px;">
                 </div>
 
-                <div id="balance-input-container">
-                    <label id="lbl-balance-val">Current Balance</label>
-                    <input type="number" id="cat-initial-balance" placeholder="0.00">
-                    
-                    <div style="display:flex; align-items:center; margin-bottom:20px; gap:10px;">
-                        <input type="checkbox" id="cat-is-default" style="width:20px; height:20px; margin:0;">
-                        <label for="cat-is-default" style="margin:0; color:#fff; cursor:pointer;">Set as Default Payment Account</label>
-                    </div>
-                </div>
-
-                <div id="cap-input-container" class="hidden">
-                    <label>Monthly Spending Cap</label>
-                    <input type="number" id="cat-cap" placeholder="0.00 (Optional)">
-                </div>
-
-                <label>Color</label> <div class="color-picker" id="color-picker"></div>
-                <label>Icon</label> <div class="icon-picker" id="icon-picker"></div>
-                
                 <div class="modal-actions">
-                    <button class="cancel-btn" onclick="closeCategoryForm()">Cancel</button>
-                    <button class="save-btn" onclick="saveCategory()">Save</button>
+                    <button class="cancel-btn" onclick="closePinForm()">Cancel</button>
+                    <button class="save-btn" onclick="submitPin()">Confirm</button>
                 </div>
             </div>
         </div>
