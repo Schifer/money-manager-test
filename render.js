@@ -1,18 +1,35 @@
-// render.js - Handles all Visual Updates
+// render.js - Handles all Visual Updates (Optimized v0.4)
+
+// --- ICONS (SVG STRINGS) ---
+const ICON_EYE_LINEAR = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:20px;height:20px;"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`;
+const ICON_EYE_BOLD = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd" /></svg>`;
 
 // --- REGISTER PLUGINS ---
 if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
+// NOTE: escapeHtml() is inherited from utils.js to prevent conflicts.
+
 // --- 1. HOME SCREEN ---
 function renderHome() {
     const accountSelect = document.getElementById('home-account-select');
+    
+    // Lazy Load Options (Performance)
     if (accountSelect.options.length === 0) { 
-        accountSelect.innerHTML = '<option value="all">All Accounts</option>'; 
+        const fragment = document.createDocumentFragment();
+        const allOpt = document.createElement('option');
+        allOpt.value = 'all';
+        allOpt.text = 'All Accounts';
+        fragment.appendChild(allOpt);
+
         categories.filter(c => c.type === 'account').forEach(acc => { 
-            accountSelect.innerHTML += `<option value="${acc.id}">${acc.name}</option>`; 
+            const opt = document.createElement('option');
+            opt.value = acc.id;
+            opt.text = acc.name; 
+            fragment.appendChild(opt);
         }); 
+        accountSelect.appendChild(fragment);
     }
     
     renderHomeTagFilter(); 
@@ -24,7 +41,7 @@ function renderHome() {
     // PRIVACY CHECK
     if (isBalanceHidden) {
         balanceEl.innerText = '••••••';
-        if(privacyBtn) privacyBtn.innerText = '🙈'; // Closed Eye
+        if(privacyBtn) privacyBtn.innerHTML = ICON_EYE_BOLD; 
     } else {
         if (selectedAccountId === 'all') { 
             let total = 0; 
@@ -33,25 +50,32 @@ function renderHome() {
         } else { 
             balanceEl.innerText = formatINR(getAccountBalance(selectedAccountId)); 
         }
-        if(privacyBtn) privacyBtn.innerText = '👁️'; // Open Eye
+        if(privacyBtn) privacyBtn.innerHTML = ICON_EYE_LINEAR; 
     }
     
     renderHomeBudgets(); 
     updateChart(selectedAccountId);
 }
 
-
 function renderHomeTagFilter() {
     const select = document.getElementById('home-tag-filter');
     if (!select) return; 
     
+    // Only re-render if count changes (Micro-optimization)
+    if (select.options.length === allTags.length + 1) return;
+
     const currentVal = select.value;
     select.innerHTML = '<option value="">All Tags</option>';
     
     if (allTags.length > 0) {
+        const fragment = document.createDocumentFragment();
         allTags.sort().forEach(tag => {
-            select.innerHTML += `<option value="${tag}">${tag}</option>`;
+            const opt = document.createElement('option');
+            opt.value = tag;
+            opt.text = tag;
+            fragment.appendChild(opt);
         });
+        select.appendChild(fragment);
     }
     select.value = currentVal;
 }
@@ -89,6 +113,9 @@ function renderHomeBudgets() {
 
     cappedCategories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
+    // PERFORMANCE: Use Fragment
+    const fragment = document.createDocumentFragment();
+
     cappedCategories.forEach(cat => {
         let spent = 0;
         transactions.forEach(t => {
@@ -112,11 +139,12 @@ function renderHomeBudgets() {
         el.setAttribute('draggable', 'true');
         el.setAttribute('data-id', cat.id);
         
+        // Dark Grey Background (#242424) + Colored Icon
         el.innerHTML = `
-            <div class="cat-icon" style="background-color: ${cat.color}20; color: ${cat.color}">${cat.icon}</div>
+            <div class="cat-icon" style="background-color: #242424; color: ${cat.color}">${cat.icon}</div>
             <div class="cat-info">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:bold; color:#fff">${cat.name}</span>
+                    <span style="font-weight:bold; color:#fff">${escapeHtml(cat.name)}</span>
                     <span style="font-size:12px; color:#888">${formatINR(spent)} / ${formatINR(cat.cap)}</span>
                 </div>
                 <div class="budget-bar-track" style="margin-top:5px;">
@@ -124,24 +152,25 @@ function renderHomeBudgets() {
                 </div>
             </div>
         `;
-        container.appendChild(el);
+        fragment.appendChild(el);
     });
 
+    container.appendChild(fragment);
     setupBudgetDrag(container);
 }
 
 function updateChart(accountId) {
     const ctx = document.getElementById('mainChart').getContext('2d');
     
+    // Retrieve DOM Elements once
     const dayVal = document.getElementById('home-date-input').value;
     const weekVal = document.getElementById('home-week-input').value;
     const monthVal = document.getElementById('home-month-input').value;
-    const startInput = document.getElementById('home-start-input');
-    const endInput = document.getElementById('home-end-input');
-    const startVal = startInput ? startInput.value : '';
-    const endVal = endInput ? endInput.value : '';
+    const startVal = document.getElementById('home-start-input') ? document.getElementById('home-start-input').value : '';
+    const endVal = document.getElementById('home-end-input') ? document.getElementById('home-end-input').value : '';
     const tagFilterVal = document.getElementById('home-tag-filter') ? document.getElementById('home-tag-filter').value : '';
 
+    // Filter Logic
     const filteredTrans = transactions.filter(t => {
         if (t.type !== viewMode) return false;
         if (accountId !== 'all' && t.accountId != accountId) return false;
@@ -159,6 +188,7 @@ function updateChart(accountId) {
         return true;
     });
 
+    // Calculate Totals
     let periodTotal = 0; 
     const categoryTotals = {};
     filteredTrans.forEach(t => { 
@@ -171,7 +201,8 @@ function updateChart(accountId) {
     const periodTotalEl = document.getElementById('period-total');
     if(periodTotalEl) periodTotalEl.innerText = formatINR(periodTotal);
     
-    const listContainer = document.getElementById('transaction-list'); listContainer.innerHTML = '';
+    const listContainer = document.getElementById('transaction-list'); 
+    listContainer.innerHTML = '';
     
     if (periodTotal === 0) { 
         document.getElementById('no-data-msg').classList.remove('hidden'); 
@@ -181,12 +212,16 @@ function updateChart(accountId) {
     document.getElementById('no-data-msg').classList.add('hidden');
     
     const sortedTrans = filteredTrans.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // PERFORMANCE: Use Fragment for Transaction List
+    const fragment = document.createDocumentFragment();
+
     sortedTrans.forEach(t => {
         let name, icon, color;
         if (!t.categoryId) { 
             name = t.type === 'income' ? 'Income' : 'Uncategorized'; 
             icon = t.type === 'income' ? '💵' : '❓'; 
-            color = t.type === 'income' ? '#4bb14e' : '#888'; 
+            color = t.type === 'income' ? '#2ECC71' : '#888'; 
         } else { 
             const cat = categories.find(c => c.id == t.categoryId); 
             name = cat ? cat.name : 'Unknown'; 
@@ -196,18 +231,19 @@ function updateChart(accountId) {
 
         let tagHtml = '';
         if (t.tags && t.tags.length > 0) {
-            tagHtml = t.tags.map(tag => `<span class="tag-pill-card">${tag}</span>`).join(' ');
+            tagHtml = t.tags.map(tag => `<span class="tag-pill-card">${escapeHtml(tag)}</span>`).join(' ');
         }
 
         const amountColorClass = t.type === 'expense' ? 'text-red' : 'text-green';
         const displaySign = t.type === 'expense' ? '-' : '+';
 
         const row = document.createElement('div'); row.className = 'spending-item';
+        
         row.innerHTML = `
             <div class="spending-left">
-                <div class="spending-icon" style="background-color:${color}20; color:${color}">${icon}</div>
+                <div class="spending-icon" style="background-color:#242424; color:${color}">${icon}</div>
                 <div class="spending-info">
-                    <span class="spending-name">${name}</span>
+                    <span class="spending-name">${escapeHtml(name)}</span>
                     <div class="spending-details-row">
                         <span class="spending-date">${t.date}</span>
                         ${tagHtml}
@@ -217,12 +253,23 @@ function updateChart(accountId) {
             <div class="spending-amount ${amountColorClass}">${displaySign}${formatINR(t.amount).replace('₹', '')}</div>
         `;
         row.onclick = () => editTransaction(t.id);
-        listContainer.appendChild(row);
+        fragment.appendChild(row);
     });
+    
+    listContainer.appendChild(fragment);
 
+    // Chart Rendering
     const dataValues = Object.values(categoryTotals);
-    const dataLabels = Object.keys(categoryTotals).map(id => { if(id === 'uncat') return viewMode === 'income' ? 'Income' : 'Uncategorized'; const cat = categories.find(c => c.id == id); return cat ? cat.name : 'Unknown'; });
-    const dataColors = Object.keys(categoryTotals).map(id => { if(id === 'uncat') return viewMode === 'income' ? '#4bb14e' : '#888'; const cat = categories.find(c => c.id == id); return cat ? cat.color : '#888'; });
+    const dataLabels = Object.keys(categoryTotals).map(id => { 
+        if(id === 'uncat') return viewMode === 'income' ? 'Income' : 'Uncategorized'; 
+        const cat = categories.find(c => c.id == id); 
+        return cat ? cat.name : 'Unknown'; 
+    });
+    const dataColors = Object.keys(categoryTotals).map(id => { 
+        if(id === 'uncat') return viewMode === 'income' ? '#2ECC71' : '#888'; 
+        const cat = categories.find(c => c.id == id); 
+        return cat ? cat.color : '#888'; 
+    });
     
     if (chartInstance) {
         chartInstance.destroy();
@@ -231,7 +278,17 @@ function updateChart(accountId) {
     
     chartInstance = new Chart(ctx, { 
         type: 'doughnut', 
-        data: { labels: dataLabels, datasets: [{ data: dataValues, backgroundColor: dataColors, borderWidth: 0, hoverOffset: 4 }] }, 
+        data: { 
+            labels: dataLabels, 
+            datasets: [{ 
+                data: dataValues, 
+                backgroundColor: dataColors, 
+                borderWidth: 5, 
+                borderColor: '#111111', 
+                borderRadius: 07, 
+                hoverOffset: 4 
+            }] 
+        }, 
         options: { 
             cutout: '70%', 
             responsive: true, maintainAspectRatio: false, resizeDelay: 0,
@@ -248,8 +305,8 @@ function renderGraph() {
     
     const dayVal = document.getElementById('graph-date-input').value;
     const monthVal = document.getElementById('graph-month-input').value;
-    const startVal = document.getElementById('graph-start-input').value;
-    const endVal = document.getElementById('graph-end-input').value;
+    const startVal = document.getElementById('graph-start-input') ? document.getElementById('graph-start-input').value : '';
+    const endVal = document.getElementById('graph-end-input') ? document.getElementById('graph-end-input').value : '';
 
     const filteredTrans = transactions.filter(t => {
         if (t.type !== graphMode) return false; 
@@ -277,7 +334,7 @@ function renderGraph() {
 
     const amountEl = document.getElementById('graph-total-amount');
     amountEl.innerText = formatINR(grandTotal);
-    amountEl.style.color = graphMode === 'expense' ? '#f13130' : '#4bb14e';
+    amountEl.style.color = graphMode === 'expense' ? '#E74C3C' : '#2ECC71';
 
     if (!hasData) {
         document.getElementById('no-tags-msg').classList.remove('hidden');
@@ -310,29 +367,11 @@ function renderGraph() {
             responsive: true, 
             maintainAspectRatio: false,
             layout: { padding: { right: 80, left: 10 } },
-            
-            animations: {
-                x: {
-                    type: 'number',
-                    easing: 'easeOutQuart',
-                    duration: 1000,
-                    from: 0, 
-                    delay: 0
-                },
-                y: {
-                    type: 'number',
-                    duration: 0 
-                }
-            },
+            animations: { x: { type: 'number', easing: 'easeOutQuart', duration: 1000, from: 0, delay: 0 }, y: { type: 'number', duration: 0 } },
             animation: { duration: 0 },
-            
             scales: { 
                 x: { display: false, beginAtZero: true, min: 0 }, 
-                y: { 
-                    grid: { display: false, drawBorder: false }, 
-                    ticks: { color: '#fff', font: { size: 13, weight: 'bold', family: 'monospace' }, padding: 8 },
-                    border: { display: false }
-                } 
+                y: { grid: { display: false, drawBorder: false }, ticks: { color: '#fff', font: { size: 13, weight: 'bold', family: 'monospace' }, padding: 8 }, border: { display: false } } 
             },
             plugins: { 
                 legend: { display: false }, 
@@ -344,9 +383,7 @@ function renderGraph() {
                     color: '#ffffff', 
                     font: { weight: 'bold', size: 12 }, 
                     formatter: function(value) { return formatINR(value); },
-                    offset: 6,
-                    clamp: false,     
-                    clip: false       
+                    offset: 6, clamp: false, clip: false       
                 } 
             }
         },
@@ -354,34 +391,47 @@ function renderGraph() {
     });
 }
 
-// --- 3. ACCOUNTS SCREEN (REAL-TIME UPDATE) ---
+// --- 3. ACCOUNTS SCREEN ---
 function renderAccounts() {
-    const list = document.getElementById('accounts-list'); const gt = document.getElementById('grand-total'); list.innerHTML = ''; let sum = 0; const accs = categories.filter(c => c.type === 'account');
-    if (accs.length === 0) { list.innerHTML = '<div style="text-align:center; color:#555; margin-top:20px;">No accounts.</div>'; return; }
+    const list = document.getElementById('accounts-list'); 
+    const gt = document.getElementById('grand-total'); 
+    list.innerHTML = ''; 
+    let sum = 0; 
+    const accs = categories.filter(c => c.type === 'account');
+    
+    if (accs.length === 0) { 
+        list.innerHTML = '<div style="text-align:center; color:#555; margin-top:20px;">No accounts.</div>'; 
+        return; 
+    }
+
+    const fragment = document.createDocumentFragment();
+
     accs.forEach(acc => { 
-        // THIS IS THE KEY: We calculate the LIVE balance using getAccountBalance()
         const bal = getAccountBalance(acc.id); 
         sum += parseFloat(bal); 
         
         const card = document.createElement('div'); 
         card.className = 'account-card'; 
         card.style.borderLeftColor = acc.color; 
+        card.onclick = () => editCategory(acc.id);
         
         card.innerHTML = `
             <div class="acc-left">
-                <div class="acc-icon">${acc.icon}</div>
-                <div class="acc-name">${acc.name}</div>
+                <div class="acc-icon" style="background-color: #242424; color: ${acc.color}">${acc.icon}</div>
+                <div class="acc-name">${escapeHtml(acc.name)}</div>
             </div>
             <div class="acc-right">
                 <div style="text-align:right;">
                     <div style="font-size:10px; color:#888; text-transform:uppercase;">Available</div>
                     <div class="acc-balance">${formatINR(bal)}</div>
                 </div>
-                <button class="edit-btn-icon" style="background:none; border:none; color:#666; margin-left:10px;" onclick="editCategory(${acc.id})">✏️</button>
+                <div style="color:#666; margin-left:10px; font-size:18px;">✏️</div>
             </div>
         `; 
-        list.appendChild(card); 
+        fragment.appendChild(card); 
     });
+    
+    list.appendChild(fragment);
     if(gt) gt.innerText = formatINR(sum);
 }
 
@@ -399,25 +449,33 @@ function renderCategories() {
 
     sections.sort((a, b) => (a.order || 0) - (b.order || 0));
 
+    const fragment = document.createDocumentFragment();
+
     sections.forEach(cat => {
         const item = document.createElement('div'); 
         item.className = 'cat-item';
+        item.onclick = () => editCategory(cat.id);
         
         item.innerHTML = `
-            <div class="cat-icon" style="background-color: ${cat.color}20; color: ${cat.color}">${cat.icon}</div>
+            <div class="cat-icon" style="background-color: #242424; color: ${cat.color}">${cat.icon}</div>
             <div class="cat-info">
-                <div style="font-weight:bold; color:#fff">${cat.name}</div>
+                <div style="font-weight:bold; color:#fff">${escapeHtml(cat.name)}</div>
             </div>
-            <button class="edit-btn-icon" style="background:none; border:none; color:#666;" onclick="editCategory(${cat.id})">✏️</button>
+            <div style="color:#666; font-size:18px;">✏️</div>
         `;
-        list.appendChild(item);
+        fragment.appendChild(item);
     });
+    
+    list.appendChild(fragment);
 }
 
 // --- 5. TAG CLOUD ---
 function renderTagCloud() { 
     const cloud = document.getElementById('tag-cloud'); 
     cloud.innerHTML = ''; 
+    
+    const fragment = document.createDocumentFragment();
+
     allTags.forEach(tag => { 
         const chip = document.createElement('div'); 
         if (tagDeleteMode) { 
@@ -435,6 +493,54 @@ function renderTagCloud() {
             chip.addEventListener('mouseleave', cancelPress); 
             chip.addEventListener('touchend', cancelPress); 
         } 
-        cloud.appendChild(chip); 
+        fragment.appendChild(chip); 
     }); 
+    
+    cloud.appendChild(fragment);
+}
+
+// --- 6. TRANSFER HISTORY ---
+function renderTransferHistory() {
+    const container = document.getElementById('transfer-list');
+    container.innerHTML = '';
+    
+    const transfers = transactions
+        .filter(t => t.type === 'transfer')
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (transfers.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#555; margin-top:20px;">No transfer history.</div>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    transfers.forEach(t => {
+        const fromAcc = categories.find(c => c.id == t.fromAccountId);
+        const toAcc = categories.find(c => c.id == t.toAccountId);
+        
+        const el = document.createElement('div');
+        el.className = 'spending-item';
+        
+        el.innerHTML = `
+            <div class="spending-left">
+                <div class="spending-icon" style="background-color: #242424; color: #fff; font-size: 14px;">⇄</div>
+                <div class="spending-info">
+                    <span class="spending-name" style="font-size:13px; color:#ccc;">
+                        <span style="color:#fff; font-weight:bold;">${fromAcc ? escapeHtml(fromAcc.name) : '???'}</span> 
+                        &nbsp;➔&nbsp; 
+                        <span style="color:#fff; font-weight:bold;">${toAcc ? escapeHtml(toAcc.name) : '???'}</span>
+                    </span>
+                    <div class="spending-details-row">
+                        <span class="spending-date">${formatDateFriendly(t.date)}</span>
+                        ${t.note ? `<span class="tag-pill-card">${escapeHtml(t.note)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="spending-amount" style="color: #fff;">${formatINR(t.amount)}</div>
+        `;
+        fragment.appendChild(el);
+    });
+    
+    container.appendChild(fragment);
 }
