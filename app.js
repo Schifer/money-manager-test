@@ -1,5 +1,9 @@
-// app.js - Application Logic (Controls User Interaction)
+// app.js - Application Logic (Optimized v0.4)
 // Dependencies: utils.js, render.js
+
+// --- HELPER: CSS VARIABLES ---
+// Reads colors from style.css so we don't hardcode Hex values here
+const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 // --- INITIALIZATION ---
 function init() {
@@ -12,7 +16,8 @@ function init() {
     setupPickers();
     renderAccounts();
     
-    document.querySelector('.app-wrapper').classList.add('theme-expense');
+    // Default Theme
+    updateAppTheme('expense');
     
     checkForSharedData();
     setFilter('day'); 
@@ -24,12 +29,14 @@ function checkForSharedData() {
     const sharedText = urlParams.get('text') || urlParams.get('title') || '';
 
     if (sharedText) {
+        // Regex to find amounts (e.g., "Paid 500 for...")
         const matches = sharedText.match(/(\d+(\.\d{1,2})?)/);
         if (matches && matches[0]) {
             const amount = parseFloat(matches[0]);
             openTransactionForm();
             setTimeout(() => {
                 document.getElementById('tx-amount').value = amount;
+                // Sanitize: Only allow alphanumeric and spaces for tags
                 const cleanNote = sharedText.substring(0, 20).replace(/[^a-zA-Z0-9 ]/g, "");
                 if(cleanNote) {
                    const tagInput = document.getElementById('tx-tag-input');
@@ -46,31 +53,26 @@ function switchTab(tabName) {
     const navBtns = document.querySelectorAll('.nav-btn');
     navBtns.forEach(btn => btn.classList.remove('active'));
     
-    let activeIndex = 0;
-    if (tabName === 'graph') activeIndex = 1;
-    else if (tabName === 'accounts') activeIndex = 2;
-    else if (tabName === 'categories') activeIndex = 3;
-    else if (tabName === 'settings') activeIndex = 4;
-    
+    // Set Active Nav Icon
+    const tabIndexMap = { 'graph': 1, 'accounts': 2, 'categories': 3, 'settings': 4 };
+    const activeIndex = tabIndexMap[tabName] || 0; // Default to 0 (Home)
     if(navBtns[activeIndex]) navBtns[activeIndex].classList.add('active');
     
+    // Hide all views
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
 
-    const appWrapper = document.querySelector('.app-wrapper');
-    appWrapper.classList.remove('theme-expense', 'theme-income');
-
+    // Handle Floating Action Button (FAB)
     const fab = document.querySelector('.fab-btn');
     if (tabName === 'home') fab.classList.remove('hidden');
     else fab.classList.add('hidden');
 
+    // Switch View
     if (tabName === 'categories') { 
         renderCategories(); 
         document.getElementById('categories-view').classList.remove('hidden'); 
     }
     else if (tabName === 'home') { 
-        if (viewMode === 'expense') appWrapper.classList.add('theme-expense');
-        else appWrapper.classList.add('theme-income');
-        
+        updateAppTheme(viewMode); // Restore Home Theme
         document.getElementById('home-view').classList.remove('hidden'); 
         setTimeout(() => { renderHome(); }, 10);
     }
@@ -83,18 +85,20 @@ function switchTab(tabName) {
         document.getElementById('settings-view').classList.remove('hidden'); 
     }
     else if (tabName === 'graph') { 
+        updateAppTheme(graphMode); // Restore Graph Theme
         renderGraph(); 
         document.getElementById('graph-view').classList.remove('hidden'); 
     }
 }
 
-// --- PERSONALIZATION ---
-function togglePrivacy() {
-    isBalanceHidden = !isBalanceHidden;
-    localStorage.setItem('isBalanceHidden', isBalanceHidden);
-    renderHome(); // Re-paint to apply the mask
+// --- THEME MANAGEMENT (DRY) ---
+function updateAppTheme(mode) {
+    const appWrapper = document.querySelector('.app-wrapper');
+    appWrapper.classList.remove('theme-expense', 'theme-income');
+    appWrapper.classList.add(mode === 'expense' ? 'theme-expense' : 'theme-income');
 }
 
+// --- PERSONALIZATION ---
 function initSplash() {
     setTimeout(() => {
         const splash = document.getElementById('splash-screen');
@@ -108,7 +112,6 @@ function initSplash() {
 function loadUserName() {
     const cardNameEl = document.getElementById('card-holder-name');
     if(cardNameEl) cardNameEl.innerText = userName;
-    
     const settingInput = document.getElementById('setting-username');
     if(settingInput) settingInput.value = userName === 'USER' ? '' : userName;
 }
@@ -116,6 +119,7 @@ function loadUserName() {
 function saveUserName() {
     const input = document.getElementById('setting-username');
     if(input) {
+        // Sanitize: Simple trim and uppercase
         const val = input.value.trim().toUpperCase();
         userName = val || 'USER';
         localStorage.setItem('userName', userName);
@@ -142,6 +146,7 @@ function changeDate(offset) {
         const d = new Date(year, month, 1);
         d.setMonth(d.getMonth() + offset);
         
+        // Handle Month Rollover manually to ensure format YYYY-MM
         const newYear = d.getFullYear();
         const newMonth = (d.getMonth() + 1).toString().padStart(2, '0');
         input.value = `${newYear}-${newMonth}`;
@@ -150,7 +155,7 @@ function changeDate(offset) {
         const input = document.getElementById('home-week-input');
         const currentRange = getWeekRange(input.value); 
         const d = new Date(currentRange.start);
-        d.setDate(d.getDate() + (offset * 7));
+        d.setDate(d.getDate() + (offset * 7)); // Jump 7 days
         const weekNum = getWeekNumber(d); 
         input.value = `${d.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
     }
@@ -162,11 +167,13 @@ function resetHomeDates() {
     const today = new Date();
     document.getElementById('home-date-input').valueAsDate = today;
     document.getElementById('home-month-input').value = today.toISOString().slice(0, 7);
+    
     let startDate = today;
     if (transactions.length > 0) {
         const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
         startDate = new Date(sorted[0].date);
     }
+    
     const startInput = document.getElementById('home-start-input');
     if(startInput) startInput.valueAsDate = startDate;
     const endInput = document.getElementById('home-end-input');
@@ -183,6 +190,7 @@ function resetGraphDates() {
     const today = new Date();
     document.getElementById('graph-date-input').valueAsDate = today;
     document.getElementById('graph-month-input').value = today.toISOString().slice(0, 7); 
+    
     let startDate = today;
     if (transactions.length > 0) {
         const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -190,15 +198,15 @@ function resetGraphDates() {
     }
     document.getElementById('graph-start-input').valueAsDate = startDate;
     document.getElementById('graph-end-input').valueAsDate = today;
+    
+    updateGraphSmartDateDisplay();
     if (!document.getElementById('graph-view').classList.contains('hidden')) renderGraph();
 }
 
 function updateSmartDateDisplay() {
     const dayInput = document.getElementById('home-date-input');
     const dayDisplay = document.getElementById('display-day');
-    if (dayInput && dayDisplay) {
-        dayDisplay.innerText = formatDateFriendly(dayInput.value); 
-    }
+    if (dayInput && dayDisplay) dayDisplay.innerText = formatDateFriendly(dayInput.value); 
 
     const monthInput = document.getElementById('home-month-input');
     const monthDisplay = document.getElementById('display-month');
@@ -211,24 +219,36 @@ function updateSmartDateDisplay() {
 
     const weekInput = document.getElementById('home-week-input');
     const weekDisplay = document.getElementById('display-week');
-    if (weekInput && weekDisplay) {
-        weekDisplay.innerText = weekInput.value ? weekInput.value : "Select Week";
+    if (weekInput && weekDisplay) weekDisplay.innerText = weekInput.value ? weekInput.value : "Select Week";
+}
+
+function updateGraphSmartDateDisplay() {
+    const dayInput = document.getElementById('graph-date-input');
+    const dayDisplay = document.getElementById('graph-display-day');
+    if (dayInput && dayDisplay) dayDisplay.innerText = formatDateFriendly(dayInput.value);
+
+    const monthInput = document.getElementById('graph-month-input');
+    const monthDisplay = document.getElementById('graph-display-month');
+    if (monthInput && monthDisplay && monthInput.value) {
+        const [y, m] = monthInput.value.split('-');
+        const date = new Date(parseInt(y), parseInt(m) - 1, 1);
+        const monthName = date.toLocaleString('default', { month: 'long' });
+        monthDisplay.innerText = `${monthName} ${y}`;
     }
+
+    const startInput = document.getElementById('graph-start-input');
+    const endInput = document.getElementById('graph-end-input');
+    const startDisplay = document.getElementById('graph-display-start');
+    const endDisplay = document.getElementById('graph-display-end');
+    
+    if (startInput && startDisplay) startDisplay.innerText = startInput.value ? formatDateFriendly(startInput.value) : "From";
+    if (endInput && endDisplay) endDisplay.innerText = endInput.value ? formatDateFriendly(endInput.value) : "To";
 }
 
 // --- FILTERS & MODES ---
 function toggleHomeView(mode) {
     viewMode = mode;
-    const homeView = document.getElementById('home-view');
-    if (!homeView.classList.contains('hidden')) {
-        const appWrapper = document.querySelector('.app-wrapper');
-        appWrapper.classList.remove('theme-expense', 'theme-income');
-        if (mode === 'expense') {
-            appWrapper.classList.add('theme-expense');
-        } else {
-            appWrapper.classList.add('theme-income');
-        }
-    }
+    updateAppTheme(mode); // Optimized
     document.getElementById('btn-view-expense').classList.toggle('active', mode === 'expense');
     document.getElementById('btn-view-income').classList.toggle('active', mode === 'income');
     renderHome();
@@ -253,6 +273,7 @@ function setFilter(filter) {
 
 function toggleGraphMode(mode) {
     graphMode = mode;
+    updateAppTheme(mode); // Optimized
     document.getElementById('btn-graph-expense').classList.toggle('active', mode === 'expense');
     document.getElementById('btn-graph-income').classList.toggle('active', mode === 'income');
     renderGraph();
@@ -264,13 +285,15 @@ function setGraphFilter(filter) {
         btn.classList.remove('active');
         if(btn.innerText.toLowerCase() === filter) btn.classList.add('active');
     });
-    document.getElementById('ctrl-day').classList.toggle('hidden', filter !== 'day');
-    document.getElementById('ctrl-month').classList.toggle('hidden', filter !== 'month');
-    document.getElementById('ctrl-period').classList.toggle('hidden', filter !== 'period');
+    document.getElementById('graph-ctrl-day').classList.toggle('hidden', filter !== 'day');
+    document.getElementById('graph-ctrl-month').classList.toggle('hidden', filter !== 'month');
+    document.getElementById('graph-ctrl-period').classList.toggle('hidden', filter !== 'period');
+    
+    updateGraphSmartDateDisplay();
     renderGraph();
 }
 
-// --- DRAG & DROP LOGIC ---
+// --- DRAG & DROP ---
 function setupBudgetDrag(container) {
     let draggables = container.querySelectorAll('.cat-item');
     if (draggables.length === 0) return;
@@ -400,17 +423,17 @@ function saveTransaction() {
     localStorage.setItem('transactions', JSON.stringify(transactions)); closeTransactionForm(); toggleHomeView(formMode);
 }
 
-// --- CATEGORY & ACCOUNT MANAGEMENT (RESTORED & SMART LOGIC) ---
+// --- CATEGORY & ACCOUNT MANAGEMENT ---
 function openCategoryForm(type) {
     editingId = null;
     document.getElementById('modal-title').innerText = type === 'account' ? "New Account" : "New Category";
+    document.getElementById('btn-delete-cat').classList.add('hidden'); // Hide delete for new
     
     const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
     if(typeBtn) selectType(typeBtn, type);
     
     const label = document.getElementById('lbl-balance-val');
-    if (type === 'account') label.innerText = "Current Balance";
-    else label.innerText = "Monthly Cap";
+    label.innerText = type === 'account' ? "Current Balance" : "Monthly Cap";
 
     document.getElementById('cat-name').value = '';
     document.getElementById('cat-initial-balance').value = '';
@@ -418,7 +441,7 @@ function openCategoryForm(type) {
     document.getElementById('cat-is-default').checked = false;
     
     setColor(COLORS[0]);
-    setIcon(ICONS[0]);
+    setIconIndex(0); 
     
     document.getElementById('category-form-overlay').classList.remove('hidden');
 }
@@ -429,6 +452,7 @@ function editCategory(id) {
     
     editingId = id;
     document.getElementById('modal-title').innerText = "Edit " + (cat.type === 'account' ? "Account" : "Category");
+    document.getElementById('btn-delete-cat').classList.remove('hidden'); // Show delete for edit
     
     const typeBtn = document.querySelector(`.type-btn[onclick*="'${cat.type}'"]`);
     if(typeBtn) selectType(typeBtn, cat.type);
@@ -449,7 +473,8 @@ function editCategory(id) {
     document.getElementById('cat-is-default').checked = (defaultAccId == id);
     
     setColor(cat.color);
-    setIcon(cat.icon);
+    const iconIdx = ICONS.indexOf(cat.icon);
+    setIconIndex(iconIdx !== -1 ? iconIdx : 0);
     
     document.getElementById('category-form-overlay').classList.remove('hidden');
 }
@@ -469,6 +494,7 @@ function saveCategory() {
         const currentCalculatedBalance = getAccountBalance(editingId);
         const oldCat = categories.find(c => c.id === editingId);
         const oldInitial = parseFloat(oldCat.initialBalance || 0);
+        // Calculate the difference between real transactions and the manual override
         const netTransactions = currentCalculatedBalance - oldInitial;
         finalInitialBalance = userInputBalance - netTransactions;
     }
@@ -504,7 +530,30 @@ function saveCategory() {
     renderHome(); 
 }
 
-// --- TRANSFER LOGIC (RESTORED) ---
+function deleteCategory() {
+    if (!editingId) return;
+    const item = categories.find(c => c.id === editingId);
+    if (!item) return;
+
+    const typeName = item.type === 'account' ? 'Account' : 'Category';
+    const confirmMsg = `Delete this ${typeName}?\n\nExisting transactions will be preserved but marked as 'Unknown'.`;
+    
+    if (confirm(confirmMsg)) {
+        categories = categories.filter(c => c.id !== editingId);
+        localStorage.setItem('categories', JSON.stringify(categories));
+        
+        if (localStorage.getItem('defaultAccountId') == editingId) {
+            localStorage.removeItem('defaultAccountId');
+        }
+
+        closeCategoryForm();
+        renderCategories();
+        renderAccounts();
+        renderHome();
+    }
+}
+
+// --- TRANSFER LOGIC ---
 function openTransferForm() {
     document.getElementById('transfer-form-overlay').classList.remove('hidden');
     document.getElementById('trans-date').valueAsDate = new Date();
@@ -552,19 +601,40 @@ function saveTransfer() {
     renderHome();
 }
 
-// --- HELPERS FOR FORMS ---
+// --- TRANSFER HISTORY LOGIC ---
+function openTransferHistory() {
+    document.getElementById('accounts-view').classList.add('hidden');
+    document.getElementById('transfer-history-view').classList.remove('hidden');
+    renderTransferHistory();
+}
+
+function closeTransferHistory() {
+    document.getElementById('transfer-history-view').classList.add('hidden');
+    document.getElementById('accounts-view').classList.remove('hidden');
+}
+
+// --- HELPERS FOR FORMS (Dynamic Colors) ---
 function setFormType(type) { 
     formMode = type; 
-    const btnExp = document.getElementById('btn-form-expense'), btnInc = document.getElementById('btn-form-income'); 
-    const amountInput = document.getElementById('tx-amount'), labelAccount = document.getElementById('lbl-account'), categoryWrapper = document.getElementById('tx-category-wrapper'); 
+    const btnExp = document.getElementById('btn-form-expense');
+    const btnInc = document.getElementById('btn-form-income'); 
+    const amountInput = document.getElementById('tx-amount');
+    const labelAccount = document.getElementById('lbl-account');
+    const categoryWrapper = document.getElementById('tx-category-wrapper'); 
+    
+    // FETCH COLORS FROM CSS VARIABLES
+    const red = getCssVar('--primary-red');
+    const green = getCssVar('--primary-green');
+    const med = getCssVar('--c-med'); // Dark Grey
+
     if (type === 'expense') { 
-        btnExp.classList.add('active'); btnExp.style.backgroundColor = '#f13130'; btnExp.style.color = 'white'; 
-        btnInc.classList.remove('active'); btnInc.style.backgroundColor = '#242424'; btnInc.style.color = '#888'; 
-        amountInput.style.color = '#f13130'; labelAccount.innerText = "Pay From"; categoryWrapper.classList.remove('hidden'); 
+        btnExp.classList.add('active'); btnExp.style.backgroundColor = red; btnExp.style.color = 'white'; 
+        btnInc.classList.remove('active'); btnInc.style.backgroundColor = med; btnInc.style.color = '#888'; 
+        amountInput.style.color = red; labelAccount.innerText = "Pay From"; categoryWrapper.classList.remove('hidden'); 
     } else { 
-        btnInc.classList.add('active'); btnInc.style.backgroundColor = '#4bb14e'; btnInc.style.color = 'white'; 
-        btnExp.classList.remove('active'); btnExp.style.backgroundColor = '#242424'; btnExp.style.color = '#888'; 
-        amountInput.style.color = '#4bb14e'; labelAccount.innerText = "Deposit To"; categoryWrapper.classList.add('hidden'); 
+        btnInc.classList.add('active'); btnInc.style.backgroundColor = green; btnInc.style.color = 'white'; 
+        btnExp.classList.remove('active'); btnExp.style.backgroundColor = med; btnExp.style.color = '#888'; 
+        amountInput.style.color = green; labelAccount.innerText = "Deposit To"; categoryWrapper.classList.add('hidden'); 
     } 
 }
 
@@ -614,15 +684,12 @@ function selectType(btn, type) {
 
 function updateFormUI() {
     const isAccount = selectedType === 'account';
-    
-    // Toggle Buttons UI
     const btns = document.querySelectorAll('.type-btn');
     btns.forEach(b => {
         if(b.innerText.toLowerCase().includes(selectedType)) b.classList.add('active');
         else b.classList.remove('active');
     });
 
-    // Toggle Fields
     const balContainer = document.getElementById('balance-input-container');
     const capContainer = document.getElementById('cap-input-container');
     
@@ -638,8 +705,23 @@ function updateFormUI() {
 }
 
 function setColor(color) { selectedColor = color; setupPickers(); }
+
+// LEGACY SUPPORT
 function setIcon(icon) { selectedIcon = icon; setupPickers(); }
-function setupPickers() { document.getElementById('color-picker').innerHTML = COLORS.map(c => `<div class="color-swatch" style="background:${c}; ${c === selectedColor ? 'border-color:white' : ''}" onclick="setColor('${c}')"></div>`).join(''); document.getElementById('icon-picker').innerHTML = ICONS.map(i => `<div class="icon-option ${i === selectedIcon ? 'selected' : ''}" onclick="setIcon('${i}')">${i}</div>`).join(''); }
+function setIconIndex(index) { selectedIcon = ICONS[index]; setupPickers(); }
+
+function setupPickers() {
+    document.getElementById('color-picker').innerHTML = COLORS.map(c =>
+        `<div class="color-swatch" style="background:${c}; ${c === selectedColor ? 'border-color:white; transform:scale(1.1);' : ''}" onclick="setColor('${c}')"></div>`
+    ).join('');
+    
+    document.getElementById('icon-picker').innerHTML = ICONS.map((icon, index) =>
+        `<div class="icon-option ${icon === selectedIcon ? 'selected' : ''}" onclick="setIconIndex(${index})">
+            ${icon}
+        </div>`
+    ).join('');
+}
+
 function closeCategoryForm() { document.getElementById('category-form-overlay').classList.add('hidden'); }
 
 // --- RESET LOGIC ---
@@ -648,5 +730,84 @@ function closeResetConfirmation() { document.getElementById('reset-confirm-overl
 function startResetProcess() { closeResetConfirmation(); document.getElementById('reset-progress-overlay').classList.remove('hidden'); const fill = document.getElementById('reset-fill'); const timerText = document.getElementById('reset-timer-text'); let progress = 0; const totalTime = 10000; const intervalTime = 100; const steps = totalTime / intervalTime; let currentStep = 0; fill.style.width = '0%'; resetTimer = setInterval(() => { currentStep++; progress = (currentStep / steps) * 100; fill.style.width = `${progress}%`; const secondsLeft = Math.ceil((totalTime - (currentStep * intervalTime)) / 1000); timerText.innerText = `${secondsLeft}s remaining`; if (currentStep >= steps) { clearInterval(resetTimer); performFullReset(); } }, intervalTime); }
 function cancelReset() { clearInterval(resetTimer); resetTimer = null; document.getElementById('reset-progress-overlay').classList.add('hidden'); }
 function performFullReset() { localStorage.clear(); location.reload(); }
+
+// --- PRIVACY & SECURITY LOGIC ---
+let pinAction = null; 
+
+function togglePrivacy() {
+    // If Hidden, must Unlock
+    if (isBalanceHidden) {
+        if (userPin) openPinForm('unlock');
+        else {
+            isBalanceHidden = false;
+            localStorage.setItem('isBalanceHidden', isBalanceHidden);
+            renderHome();
+        }
+    } 
+    // If Visible, hide or setup
+    else {
+        if (!userPin) openPinForm('setup');
+        else {
+            isBalanceHidden = true;
+            localStorage.setItem('isBalanceHidden', isBalanceHidden);
+            renderHome();
+        }
+    }
+}
+
+function openPinForm(mode) {
+    pinAction = mode;
+    const title = document.getElementById('pin-title');
+    const warning = document.getElementById('pin-warning');
+    const input = document.getElementById('pin-input');
+    
+    input.value = ''; 
+    
+    if (mode === 'setup') {
+        title.innerText = "Set Privacy PIN";
+        warning.classList.remove('hidden'); 
+    } else {
+        title.innerText = "Enter PIN";
+        warning.classList.add('hidden');
+    }
+    
+    document.getElementById('pin-form-overlay').classList.remove('hidden');
+    setTimeout(() => input.focus(), 100); 
+}
+
+function closePinForm() {
+    document.getElementById('pin-form-overlay').classList.add('hidden');
+    document.getElementById('pin-input').value = '';
+}
+
+function submitPin() {
+    const input = document.getElementById('pin-input');
+    const val = input.value.trim();
+    
+    if (val.length !== 4 || isNaN(val)) {
+        return alert("Please enter a 4-digit PIN.");
+    }
+
+    if (pinAction === 'setup') {
+        userPin = val;
+        localStorage.setItem('userPin', userPin);
+        isBalanceHidden = true;
+        localStorage.setItem('isBalanceHidden', isBalanceHidden);
+        closePinForm();
+        renderHome();
+        alert("Security PIN Set. Don't forget it!");
+    } 
+    else if (pinAction === 'unlock') {
+        if (val === userPin) {
+            isBalanceHidden = false;
+            localStorage.setItem('isBalanceHidden', isBalanceHidden);
+            closePinForm();
+            renderHome();
+        } else {
+            alert("Incorrect PIN.");
+            input.value = '';
+        }
+    }
+}
 
 init();
