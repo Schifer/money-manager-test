@@ -16,7 +16,7 @@ jobs:
           node-version: '18'
       - run: npm install -g @capacitor/cli
       - run: npm init -y
-      - run: npm install @capacitor/core @capacitor/android
+      - run: npm install @capacitor/core@5.5.1 @capacitor/android@5.5.1
       - run: mkdir www && cp index.html app.js style.css manifest.json sw.js render.js utils.js www/
       - run: npx cap init MoneyManager com.schifer.moneymanager --web-dir www
       - run: npx cap add android
