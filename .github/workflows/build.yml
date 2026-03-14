@@ -21,7 +21,7 @@ jobs:
       - run: npx cap init MoneyManager com.schifer.moneymanager --web-dir www
       - run: npx cap add android
       - run: npx cap sync android
-      - run: cd android && ./gradlew assembleDebug
+      - run: cd android && ./gradlew --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
