@@ -17,7 +17,8 @@ jobs:
       - run: npm install -g @capacitor/cli
       - run: npm init -y
       - run: npm install @capacitor/core @capacitor/android
-      - run: npx cap init MoneyManager com.schifer.moneymanager --web-dir .
+      - run: mkdir www && cp index.html app.js style.css manifest.json sw.js render.js utils.js www/
+      - run: npx cap init MoneyManager com.schifer.moneymanager --web-dir www
       - run: npx cap add android
       - run: npx cap sync android
       - run: cd android && ./gradlew assembleDebug
